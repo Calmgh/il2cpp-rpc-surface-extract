@@ -1,0 +1,20 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Test fixtures are generated from make_fixture.py, not committed
+tests/data/
+
+# Analysis output. Symbol dumps are large and often say too much.
+*.tsv
+registry.tsv
+rpc_map.tsv
+sym*.tsv
+
+# Editors
+.vscode/
+.idea/
+*.swp

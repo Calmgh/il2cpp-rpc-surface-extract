@@ -1,0 +1,50 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # ubuntu-latest is Ubuntu 26 now and no longer ships 3.8/3.9 builds, so
+        # the oldest supported interpreter is exercised on Windows instead.
+        python-version: ["3.10", "3.12", "3.13"]
+        include:
+          - os: windows-latest
+            python-version: "3.8"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install capstone
+        run: pip install capstone
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke test the CLI tools
+        shell: bash
+        run: |
+          python tests/make_fixture.py
+          DLL=tests/data/GameAssembly.dll
+          python tools/export_symbols.py "$DLL" --from-pdb --out out/sym
+          python tools/rpc_registry.py "$DLL" --symbols out/sym_funcs.tsv --out out/registry.tsv
+          python tools/rpc_map.py "$DLL" --symbols out/sym_funcs.tsv --registry out/registry.tsv --out out/map.tsv
+          python tools/rva_query.py --symbols out/sym_funcs.tsv --owner 0x1047 --search remotecall
+          python tools/find_callers.py "$DLL" --symbols out/sym_funcs.tsv --target 0x1040
+          python tools/func_cmp.py "$DLL" 0x1040 0x1060 --symbols out/sym_funcs.tsv
+          python tools/check_entry.py "$DLL" 0x1040 --symbols out/sym_funcs.tsv
+          python -c "open('meta.dat','wb').write(b'AddStyleRank\x00RemoveStyleRank\x00Publish\x00')"
+          python tools/metadata_dump.py meta.dat --anchor AddStyleRank --before 4 --after 32

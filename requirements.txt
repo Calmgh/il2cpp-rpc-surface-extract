@@ -1,0 +1,4 @@
+# Required for the analysis tools (registry extraction, mapping, comparison,
+# entry checks). Symbol export itself uses only the standard library plus
+# dbghelp on Windows.
+capstone>=5.0
